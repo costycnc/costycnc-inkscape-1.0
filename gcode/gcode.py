@@ -71,7 +71,9 @@ class hello(inkex.EffectExtension):
         for gc in pathx:
             g +="G01 X"+"{:.2f}".format(gc[0])+" Y"+"{:.2f}".format(gc[1])+"\n"
             
-        g +="G01 X0 Y0" 
+        g +="G01 X0 Y0"             
+        self.msg(g)
+	    
         with open("gcode.nc", "w") as f:
             f.write(g)
             
