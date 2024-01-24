@@ -7,12 +7,16 @@ from tkinter import messagebox as mb
 
 
 
+
 class hello(inkex.EffectExtension):
 
 
     def add_arguments(self, pars):
         pars.add_argument(
-            "--flatness", type=float, default=10, help="Minimum flattness"
+            "--flatness", type=float, default=0.1, help="Minimum flatness"
+        )
+        pars.add_argument(
+            "--costy", type=int, default=1500, help="Maximum points to process quickly!!! Increase this value if program ask  ... but it will take much longer time to wait "
         )
 
     def effect(self):
@@ -40,12 +44,9 @@ class hello(inkex.EffectExtension):
         # c contain now all path with only one x,y coordinate
 
         pathx=[[0,0]]
-        res=mb.askquestion("Your image have "+str(a)+" nodes", 'Continue?')
-        if res == 'no' :
+        if a > self.options.costy :
+            self.msg(" Your image have "+str(a)+" nodes.Put points value more than "+str(a)+" but need to wait "+str(int(a/1000))+" more times that normally!!")
             return
-
-        
-        #if (ctypes.windll.user32.MessageBoxW(0, "Your image have "+str(a)+" nodes","Attention !!!", 1)==2):
 
         
         while(len(c)):
@@ -74,25 +75,6 @@ class hello(inkex.EffectExtension):
         g +="G01 X0 Y0"             
         self.msg(g)
 	    
-        with open("gcode.nc", "w") as f:
-            f.write(g)
-            
-        dt_string = datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
-        
-        #pathset = os.path.join(homedir, "\Documents\School Life Diary")
-        
-        pathset=os.path.expanduser('~/documents/costycnc/')
-        
-        #os.path.expanduser('~\documents\costycnc\'+dt_string+'.nc')
-        
-        if not(os.path.exists(pathset)):
-
-            os.mkdir(pathset)
-            
-        #self.msg(pathset+dt_string+'.nc')   
-         
-        with open(pathset+dt_string+'.nc', "w") as f:
-            f.write(g)
 
 		
 if __name__ == '__main__':

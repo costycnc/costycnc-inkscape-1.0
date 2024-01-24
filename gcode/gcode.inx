@@ -2,7 +2,8 @@
 <inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
   <name>gcode</name>
   <id>org.inkscape.tutorial.gcode</id>
-  <param name="flatness" type="float" min="0.1" max="1000.0" gui-text="Flatness:">10.0</param>
+  <param name="flatness" type="float" min="0.1" max="100" gui-text="Flatness:">0.1</param>
+  <param name="costy" type="int" min="1500" max="150000" gui-text="Points:">1500</param>
   <effect>
     <effects-menu>
       <submenu name="costycnc"/>
