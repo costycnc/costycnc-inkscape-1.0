@@ -16,7 +16,7 @@ class hello(inkex.EffectExtension):
             "--flatness", type=float, default=0.1, help="Minimum flatness"
         )
         pars.add_argument(
-            "--costy", type=int, default=1500, help="Maximum points to process quickly!!! Increase this value if program ask  ... but it will take much longer time to wait "
+            "--costy", type=int, default=15000, help="Maximum points to process quickly!!! Increase this value if program ask  ... but it will take much longer time to wait "
         )
 
     def effect(self):
@@ -72,8 +72,28 @@ class hello(inkex.EffectExtension):
         for gc in pathx:
             g +="G01 X"+"{:.2f}".format(gc[0])+" Y"+"{:.2f}".format(gc[1])+"\n"
             
-        g +="G01 X0 Y0"             
+        g +="G01 X0 Y0"
+            
+        dt_string = datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
+        
+        #pathset = os.path.join(homedir, "\Documents\School Life Diary")
+        
+        pathset=os.path.expanduser('~/documents/costycnc/')
+        
+        #os.path.expanduser('~\documents\costycnc\'+dt_string+'.nc')
+        
+        if not(os.path.exists(pathset)):
+
+            os.mkdir(pathset)
+            
+        self.msg('('+pathset+'costycnc.nc)')             
         self.msg(g)
+
+        with open("gcode.nc", "w") as f:
+            f.write(g)   
+         
+        with open(pathset+dt_string+'.nc', "w") as f:
+            f.write(g)
 	    
 
 		
