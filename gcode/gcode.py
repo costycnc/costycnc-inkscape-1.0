@@ -13,10 +13,10 @@ class hello(inkex.EffectExtension):
 
     def add_arguments(self, pars):
         pars.add_argument(
-            "--flatness", type=float, default=0.1, help="Minimum flatness"
+            "--feedrate", type=int, default=500, help="Feedrate"
         )
         pars.add_argument(
-            "--costy", type=int, default=15000, help="Maximum points to process quickly!!! Increase this value if program ask  ... but it will take much longer time to wait "
+            "--temperature", type=int, default=1000, help="Temperature "
         )
 
     def effect(self):
@@ -30,7 +30,7 @@ class hello(inkex.EffectExtension):
             self.msg("Attention!!! No path or more that 1 path selected!")
             return
         csp_list = self.svg.selected[0].path.to_superpath()
-        bezier.cspsubdiv(csp_list,self.options.flatness) 
+        bezier.cspsubdiv(csp_list,.1) 
         
         #put coord of all path of csp_list from 3 value in paths with 1 value
         #[[968.317, 290.616], [968.317, 290.616], [957.608, 285.97]] to [968.317, 290.616]
@@ -44,9 +44,6 @@ class hello(inkex.EffectExtension):
         # c contain now all path with only one x,y coordinate
 
         pathx=[[0,0]]
-        if a > self.options.costy :
-            self.msg(" Your image have "+str(a)+" nodes.Put points value more than "+str(a)+" but need to wait "+str(int(a/1000))+" more times that normally!!")
-            return
 
         
         while(len(c)):
@@ -68,7 +65,7 @@ class hello(inkex.EffectExtension):
             pathx=pathx[:pos0]+[pathx[pos0]]+p+pathx[pos0:]  
 
         
-        g="G21 F500 G90\nG92 X0 Y0\nM03 S1000\n"
+        g="G21 F"+str(self.options.feedrate)+" G90\nG92 X0 Y0\nM03 S"+str(self.options.temperature)+"\n"
         for gc in pathx:
             g +="G01 X"+"{:.2f}".format(gc[0])+" Y"+"{:.2f}".format(gc[1])+"\n"
             
