@@ -4,10 +4,6 @@ from inkex.elements import Group, Line,Circle,PathElement
 from datetime import datetime
 from tkinter import messagebox as mb
 
-
-
-
-
 class hello(inkex.EffectExtension):
 
 
