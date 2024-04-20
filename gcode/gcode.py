@@ -3,6 +3,8 @@ from inkex import bezier
 from inkex.elements import Group, Line,Circle,PathElement
 from datetime import datetime
 from tkinter import messagebox as mb
+import serial
+import time
 
 class hello(inkex.EffectExtension):
 
@@ -14,11 +16,17 @@ class hello(inkex.EffectExtension):
         pars.add_argument(
             "--temperature", type=int, default=1000, help="Temperature "
         )
+        pars.add_argument(
+            "--dpi", type=int, default=96, help="DPI "
+        )
+        pars.add_argument(
+            "--port", type=str, default="com4",help="Port"
+        )
 
     def effect(self):
     
     
-
+        dp=self.options.dpi/25.4
         a=0
         b=[]
         c=[]
@@ -63,7 +71,7 @@ class hello(inkex.EffectExtension):
         
         g="G21 F"+str(self.options.feedrate)+" G90\nG92 X0 Y0\nM03 S"+str(self.options.temperature)+"\n"
         for gc in pathx:
-            g +="G01 X"+"{:.2f}".format(gc[0])+" Y"+"{:.2f}".format(gc[1])+"\n"
+            g +="G01 X"+"{:.2f}".format(gc[0]/dp)+" Y"+"{:.2f}".format(gc[1]/dp)+"\n"
             
         g +="G01 X0 Y0"
             
@@ -87,8 +95,39 @@ class hello(inkex.EffectExtension):
          
         with open(pathset+dt_string+'.nc', "w") as f:
             f.write(g)
+            
+        f.close()
 	    
+        # Open grbl serial port
+        s = serial.Serial(str(self.options.port),115200)
+        time.sleep(2)
+        self.msg(s.readline())
+        self.msg(s.readline())
+        # Stream g-code to grbl
+        f = open('gcode.nc','r');
+        s.timeout = 10
+        for line in f:
+            #l = line.strip() # Strip all EOL characters for streaming
+            #self.msg( 'Sending: ' + line)
+            encoded_string = line.encode('utf-8')
+            s.write(encoded_string) # Send g-code block to grbl
+            grbl_out = s.readline() # Wait for grbl response with carriage return
 
+
+        
+        
+        
+        #encoded_string = "x100\n".encode('utf-8')
+        #s.write(encoded_string) # Send g-code block to grbl
+        #self.msg(s.readline())
+ 
+        # Open g-code file
+        #f = open('gcode.nc','r');
+        
+        # Close file and serial port
+        f.close()
+
+        s.close()
 		
 if __name__ == '__main__':
     hello().run()
