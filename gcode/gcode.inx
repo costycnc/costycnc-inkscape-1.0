@@ -4,7 +4,7 @@
   <id>org.inkscape.tutorial.gcode</id>
   <param name="feedrate" type="int" min="10" max="1000" gui-text="Feedrate:">500</param>
   <param name="temperature" type="int" min="100" max="1000" gui-text="Temperature:">1000</param>
-  <param name="dpi" type="int" min="0" max="300" gui-text="DPI:">96</param>
+  <param name="dpi" type="float" min="0" max="300" gui-text="DPI:">96</param>
   <param name="port" type="string" gui-text="Port:">com3</param>
   <effect>
     <effects-menu>
