@@ -17,7 +17,7 @@ class hello(inkex.EffectExtension):
             "--temperature", type=int, default=1000, help="Temperature "
         )
         pars.add_argument(
-            "--dpi", type=int, default=96, help="DPI "
+            "--dpi", type=float, default=96, help="DPI "
         )
         pars.add_argument(
             "--port", type=str, default="com4",help="Port"
