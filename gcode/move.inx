@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8">
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+  <name>move</name>
+  <id>org.inkscape.move.gcode</id>
+  <param name="port" type="string" gui-text="Port:">com3</param>
+  <param name="step" type="int" min="1" max="100" gui-text="Steps:">10</param>
+  <param name="unit" gui-text="Direction:" type="optiongroup" appearance="combo">
+  <option value="up">up</option>
+  <option value="down">down</option>
+  <option value="left">left</option>
+  <option value="right">right</option>
+  </param>
+  <effect>
+    <effects-menu>
+      <submenu name="costycnc"/>
+    </effects-menu>
+  </effect>
+  <script>
+    <command location="inx" interpreter="python">move.py</command>
+  </script>
+</inkscape-extension>
