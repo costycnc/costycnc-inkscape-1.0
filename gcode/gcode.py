@@ -26,27 +26,43 @@ class hello(inkex.EffectExtension):
     def effect(self):
     
     
-        dp=self.options.dpi/25.4
+        dp=self.options.dpi
         a=0
+        x=0
+        y=0
+        x1=0
+        y1=0
         b=[]
         c=[]
         if(len(self.svg.selected)!=1):
             self.msg("Attention!!! No path or more that 1 path selected!")
             return
+        self.msg(self.svg.selected[0])
+        self.msg(dp)
         csp_list = self.svg.selected[0].path.to_superpath()
         bezier.cspsubdiv(csp_list,.1) 
         
         #put coord of all path of csp_list from 3 value in paths with 1 value
         #[[968.317, 290.616], [968.317, 290.616], [957.608, 285.97]] to [968.317, 290.616]
+        
+        x2=int(csp_list[0][0][0][0])
+        y2=int(csp_list[0][0][0][1])
         for csp in csp_list:                
             for cord in csp:
                 a +=1
                 b.append([cord[0][0],cord[0][1]])
+                x1=int(cord[0][0])
+                y1=int(cord[0][1])
+                if(x2>x1): x2=x1
+                if(y2>y1): y2=y1
+                if(x<x1): x=x1
+                if(y<y1): y=y1
             c.append(b)
             b=[]
         
         # c contain now all path with only one x,y coordinate
-
+        #self.msg("(Dimension X="+str(x)+"mm Y="+str(y)+"mm)" )
+        self.msg("(Dimension X2="+str(x-x2)+"mm Y2="+str(y-y2)+"mm)" )
         pathx=[[0,0]]
 
         
@@ -71,7 +87,8 @@ class hello(inkex.EffectExtension):
         
         g="G21 F"+str(self.options.feedrate)+" G90\nG92 X0 Y0\nM03 S"+str(self.options.temperature)+"\n"
         for gc in pathx:
-            g +="G01 X"+"{:.2f}".format(gc[0]/dp)+" Y"+"{:.2f}".format(gc[1]/dp)+"\n"
+            g +="G01 X"+"{:.2f}".format(gc[0])+" Y"+"{:.2f}".format(gc[1])+"\n"
+            #g +="G01 X"+"{:.2f}".format(gc[0]/dp)+" Y"+"{:.2f}".format(gc[1]/dp)+"\n"
             
         g +="G01 X0 Y0"
             
@@ -99,35 +116,26 @@ class hello(inkex.EffectExtension):
         f.close()
 	    
         # Open grbl serial port
-        s = serial.Serial(str(self.options.port),115200)
-        time.sleep(2)
-        self.msg(s.readline())
-        self.msg(s.readline())
-        # Stream g-code to grbl
-        f = open('gcode.nc','r');
-        s.timeout = 10
-        for line in f:
-            #l = line.strip() # Strip all EOL characters for streaming
-            #self.msg( 'Sending: ' + line)
-            encoded_string = line.encode('utf-8')
-            s.write(encoded_string) # Send g-code block to grbl
-            grbl_out = s.readline() # Wait for grbl response with carriage return
 
+        try:
+            s = serial.Serial(str(self.options.port),115200,timeout=1)        
+            self.msg(s.readline())
+            self.msg(s.readline())
+            # Stream g-code to grbl
+            f = open('gcode.nc','r');
+            s.timeout = 10
+            for line in f:
+                #l = line.strip() # Strip all EOL characters for streaming
+                #self.msg( 'Sending: ' + line)
+                encoded_string = line.encode('utf-8')
+                s.write(encoded_string) # Send g-code block to grbl
+                grbl_out = s.readline() # Wait for grbl response with carriage return
+            f.close()
+            s.close()
+    
+        except serial.SerialException:
+            self.msg("")
 
         
-        
-        
-        #encoded_string = "x100\n".encode('utf-8')
-        #s.write(encoded_string) # Send g-code block to grbl
-        #self.msg(s.readline())
- 
-        # Open g-code file
-        #f = open('gcode.nc','r');
-        
-        # Close file and serial port
-        f.close()
-
-        s.close()
-		
 if __name__ == '__main__':
     hello().run()
