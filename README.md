@@ -2,6 +2,8 @@
 
 put folder gcode in C:\Program Files\Inkscape\share\inkscape\extensions
 
+C:\Users\stefa\AppData\Roaming\inkscape\extensions\costycnc-inkscape-1.0-main\costycnc-inkscape-1.0-main\gcode
+
 How install extension https://www.youtube.com/watch?v=h5VVwxQjCg4
 
 # costycnc-inkscape-1.0: G-Code Generator (`gcode.py`)
