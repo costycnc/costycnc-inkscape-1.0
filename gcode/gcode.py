@@ -1,141 +1,135 @@
-import inkex,sys,math,time,ctypes,os
+import inkex
 from inkex import bezier
-from inkex.elements import Group, Line,Circle,PathElement
+import math
+import os
 from datetime import datetime
-from tkinter import messagebox as mb
 import serial
-import time
+import sys
 
-class hello(inkex.EffectExtension):
 
+class CostyCNC(inkex.EffectExtension):
 
     def add_arguments(self, pars):
-        pars.add_argument(
-            "--feedrate", type=int, default=500, help="Feedrate"
-        )
-        pars.add_argument(
-            "--temperature", type=int, default=1000, help="Temperature "
-        )
-        pars.add_argument(
-            "--dpi", type=float, default=96, help="DPI "
-        )
-        pars.add_argument(
-            "--port", type=str, default="com4",help="Port"
-        )
+        pars.add_argument("--feedrate", type=int, default=500)
+        pars.add_argument("--temperature", type=int, default=1000)
+        pars.add_argument("--port", type=str, default="COM4")
+        pars.add_argument("--dpi", type=float, default=96)  # richiesto da Inkscape
+
 
     def effect(self):
-    
-    
-        dp=self.options.dpi
-        a=0
-        x=0
-        y=0
-        x1=0
-        y1=0
-        b=[]
-        c=[]
-        if(len(self.svg.selected)!=1):
-            self.msg("Attention!!! No path or more that 1 path selected!")
+
+        if len(self.svg.selected) < 1:
+            self.msg("Seleziona almeno un path")
             return
-        self.msg(self.svg.selected[0])
-        self.msg(dp)
-        csp_list = self.svg.selected[0].path.to_superpath()
-        bezier.cspsubdiv(csp_list,.1) 
-        
-        #put coord of all path of csp_list from 3 value in paths with 1 value
-        #[[968.317, 290.616], [968.317, 290.616], [957.608, 285.97]] to [968.317, 290.616]
-        
-        x2=int(csp_list[0][0][0][0])
-        y2=int(csp_list[0][0][0][1])
-        for csp in csp_list:                
-            for cord in csp:
-                a +=1
-                b.append([cord[0][0],cord[0][1]])
-                x1=int(cord[0][0])
-                y1=int(cord[0][1])
-                if(x2>x1): x2=x1
-                if(y2>y1): y2=y1
-                if(x<x1): x=x1
-                if(y<y1): y=y1
-            c.append(b)
-            b=[]
-        
-        # c contain now all path with only one x,y coordinate
-        #self.msg("(Dimension X="+str(x)+"mm Y="+str(y)+"mm)" )
-        self.msg("(Dimension X2="+str(x-x2)+"mm Y2="+str(y-y2)+"mm)" )
-        pathx=[[0,0]]
 
-        
-        while(len(c)):
-            minDiff = sys.maxsize
+        # ====== ESTRAZIONE PERCORSI ======
+        all_paths = []
+
+        for el in self.svg.selected:
+
+            path = el.path.transform(el.composed_transform())
+            csp = path.to_superpath()
+            bezier.cspsubdiv(csp, 0.5)
+
+            for sub in csp:
+                pts = [(seg[0][0], seg[0][1]) for seg in sub]
+                if len(pts) > 1:
+                    all_paths.append(pts)
+
+        if not all_paths:
+            self.msg("Nessun punto trovato")
+            return
+
+        # ====== UNIONE PATH (NEAREST NEIGHBOR) ======
+        pathx = [all_paths[0][0]]
+        paths = all_paths.copy()
+
+        while paths:
+            minDist = sys.maxsize
+
             for i, d in enumerate(pathx):
-                for m,csp in enumerate(c): 
-                    for n,cord in enumerate(csp): 
-                        currDiff=math.dist(d,cord)
-                        if (currDiff < minDiff):
-                            minDiff = currDiff
-                            pos0 = i
-                            pat1 = m
-                            pos1 = n
-                          
-            p=c.pop(pat1)
-            p=p[pos1:]+p[:pos1]
-            if (p[0]!=p[-1]):
+                for pi, p in enumerate(paths):
+                    for ni, pt in enumerate(p):
+                        dist = math.dist(d, pt)
+                        if dist < minDist:
+                            minDist = dist
+                            insert_pos = i
+                            path_idx = pi
+                            node_idx = ni
+
+            p = paths.pop(path_idx)
+            p = p[node_idx:] + p[:node_idx]
+
+            if p[0] != p[-1]:
                 p.append(p[0])
-            pathx=pathx[:pos0]+[pathx[pos0]]+p+pathx[pos0:]  
 
-        
-        g="G21 F"+str(self.options.feedrate)+" G90\nG92 X0 Y0\nM03 S"+str(self.options.temperature)+"\n"
-        for gc in pathx:
-            g +="G01 X"+"{:.2f}".format(gc[0])+" Y"+"{:.2f}".format(gc[1])+"\n"
-            #g +="G01 X"+"{:.2f}".format(gc[0]/dp)+" Y"+"{:.2f}".format(gc[1]/dp)+"\n"
-            
-        g +="G01 X0 Y0"
-            
-        dt_string = datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
-        
-        #pathset = os.path.join(homedir, "\Documents\School Life Diary")
-        
-        pathset=os.path.expanduser('~/documents/costycnc/')
-        
-        #os.path.expanduser('~\documents\costycnc\'+dt_string+'.nc')
-        
-        if not(os.path.exists(pathset)):
+            pathx = pathx[:insert_pos] + [pathx[insert_pos]] + p + pathx[insert_pos:]
 
-            os.mkdir(pathset)
-            
-        self.msg('('+pathset+'costycnc.nc)')             
-        self.msg(g)
+        # ====== BOUNDING BOX ======
+        xs = [p[0] for p in pathx]
+        ys = [p[1] for p in pathx]
 
-        with open("gcode.nc", "w") as f:
-            f.write(g)   
-         
-        with open(pathset+dt_string+'.nc', "w") as f:
-            f.write(g)
-            
-        f.close()
-	    
-        # Open grbl serial port
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
 
+        width_mm  = self.svg.uutounit(max_x - min_x, 'mm')
+        height_mm = self.svg.uutounit(max_y - min_y, 'mm')
+
+        self.msg(f"(Dimension X={width_mm:.2f}mm Y={height_mm:.2f}mm)")
+
+        # ====== GCODE ======
+        gcode = []
+        gcode.append("G21")
+        gcode.append("G90")
+        gcode.append(f"F{self.options.feedrate}")
+        gcode.append("G92 X0 Y0")
+        gcode.append(f"M03 S{self.options.temperature}")
+
+        first = True
+        for x, y in pathx:
+            x_mm = self.svg.uutounit(x - min_x, 'mm')
+            y_mm = self.svg.uutounit(y - min_y, 'mm')
+
+            if first:
+                gcode.append(f"G00 X{x_mm:.3f} Y{y_mm:.3f}")
+                first = False
+            else:
+                gcode.append(f"G01 X{x_mm:.3f} Y{y_mm:.3f}")
+
+        gcode.append("G01 X0 Y0")
+        gcode.append("M05")
+
+        gcode_str = "\n".join(gcode)
+
+        # ====== SALVATAGGIO ======
+        outdir = os.path.expanduser("~/documents/costycnc/")
+        os.makedirs(outdir, exist_ok=True)
+
+        fname = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".nc"
+        fpath = os.path.join(outdir, fname)
+
+        with open(fpath, "w") as f:
+            f.write(gcode_str)
+
+        self.msg(f"(Salvato: {fpath})")
+        self.msg(gcode_str)
+
+        # ====== INVIO A GRBL ======
         try:
-            s = serial.Serial(str(self.options.port),115200,timeout=1)        
-            self.msg(s.readline())
-            self.msg(s.readline())
-            # Stream g-code to grbl
-            f = open('gcode.nc','r');
-            s.timeout = 10
-            for line in f:
-                #l = line.strip() # Strip all EOL characters for streaming
-                #self.msg( 'Sending: ' + line)
-                encoded_string = line.encode('utf-8')
-                s.write(encoded_string) # Send g-code block to grbl
-                grbl_out = s.readline() # Wait for grbl response with carriage return
-            f.close()
-            s.close()
-    
-        except serial.SerialException:
-            self.msg("")
+            ser = serial.Serial(self.options.port, 115200, timeout=1)
+            ser.readline()
+            ser.readline()
 
-        
+            for line in gcode:
+                ser.write((line + "\n").encode())
+                ser.readline()
+
+            ser.close()
+
+        except Exception as e:
+            self.msg(f"Errore seriale: {e}")
+
+
 if __name__ == '__main__':
-    hello().run()
+    CostyCNC().run()
+
