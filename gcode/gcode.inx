@@ -1,16 +1,20 @@
-<?xml version="1.0" encoding="UTF-8">
+<?xml version="1.0" encoding="UTF-8"?>
 <inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
   <name>gcode</name>
   <id>org.inkscape.tutorial.gcode</id>
+
   <param name="feedrate" type="int" min="10" max="1000" gui-text="Feedrate:">500</param>
   <param name="temperature" type="int" min="100" max="1000" gui-text="Temperature:">1000</param>
   <param name="dpi" type="float" min="0" max="300" gui-text="DPI:">96</param>
   <param name="port" type="string" gui-text="Port:">com3</param>
+  <param name="subdivision" type="float" min="0.01" max="1.0" gui-text="Precisione contorno:">0.1</param>
+
   <effect>
     <effects-menu>
       <submenu name="costycnc"/>
     </effects-menu>
   </effect>
+
   <script>
     <command location="inx" interpreter="python">gcode.py</command>
   </script>
