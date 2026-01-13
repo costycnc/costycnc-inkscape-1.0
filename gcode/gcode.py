@@ -2,9 +2,9 @@ import inkex
 from inkex import bezier
 import math
 import os
+import sys
 from datetime import datetime
 import serial
-import sys
 
 
 class CostyCNC(inkex.EffectExtension):
@@ -14,22 +14,23 @@ class CostyCNC(inkex.EffectExtension):
         pars.add_argument("--temperature", type=int, default=1000)
         pars.add_argument("--port", type=str, default="COM4")
         pars.add_argument("--dpi", type=float, default=96)  # richiesto da Inkscape
-
+        pars.add_argument("--subdivision", type=float, default=0.1, help="Precisione contorno (linee corte=più dettagli)")
 
     def effect(self):
 
-        if len(self.svg.selected) < 1:
+        if len(self.svg.selected) == 0:
             self.msg("Seleziona almeno un path")
             return
 
-        # ====== ESTRAZIONE PERCORSI ======
+        # =========================================================
+        # 1) ESTRAZIONE DI TUTTI I PATH (con trasformazioni)
+        # =========================================================
         all_paths = []
 
         for el in self.svg.selected:
-
             path = el.path.transform(el.composed_transform())
             csp = path.to_superpath()
-            bezier.cspsubdiv(csp, 0.5)
+            bezier.cspsubdiv(csp, self.options.subdivision)  # <-- parametro dinamico
 
             for sub in csp:
                 pts = [(seg[0][0], seg[0][1]) for seg in sub]
@@ -37,13 +38,35 @@ class CostyCNC(inkex.EffectExtension):
                     all_paths.append(pts)
 
         if not all_paths:
-            self.msg("Nessun punto trovato")
+            self.msg("Nessun punto valido trovato")
             return
 
-        # ====== UNIONE PATH (NEAREST NEIGHBOR) ======
-        pathx = [all_paths[0][0]]
-        paths = all_paths.copy()
+        # =========================================================
+        # 2) SCELTA DEL MIGLIOR INGRESSO (più vicino a 0,0)
+        # =========================================================
+        origin = (0, 0)
+        minDist = sys.maxsize
 
+        for pi, p in enumerate(all_paths):
+            for ni, pt in enumerate(p):
+                d = math.dist(origin, pt)
+                if d < minDist:
+                    minDist = d
+                    start_path_idx = pi
+                    start_node_idx = ni
+
+        first_path = all_paths.pop(start_path_idx)
+        first_path = first_path[start_node_idx:] + first_path[:start_node_idx]
+
+        if first_path[0] != first_path[-1]:
+            first_path.append(first_path[0])
+
+        pathx = first_path[:]
+        paths = all_paths[:]
+
+        # =========================================================
+        # 3) UNIONE DI TUTTI I PATH (nearest-neighbor)
+        # =========================================================
         while paths:
             minDist = sys.maxsize
 
@@ -65,7 +88,9 @@ class CostyCNC(inkex.EffectExtension):
 
             pathx = pathx[:insert_pos] + [pathx[insert_pos]] + p + pathx[insert_pos:]
 
-        # ====== BOUNDING BOX ======
+        # =========================================================
+        # 4) BOUNDING BOX E TRASLAZIONE A (0,0)
+        # =========================================================
         xs = [p[0] for p in pathx]
         ys = [p[1] for p in pathx]
 
@@ -77,10 +102,12 @@ class CostyCNC(inkex.EffectExtension):
 
         self.msg(f"(Dimension X={width_mm:.2f}mm Y={height_mm:.2f}mm)")
 
-        # ====== GCODE ======
+        # =========================================================
+        # 5) GENERAZIONE GCODE
+        # =========================================================
         gcode = []
-        gcode.append("G21")
-        gcode.append("G90")
+        gcode.append("G21")                      # mm
+        gcode.append("G90")                      # assoluto
         gcode.append(f"F{self.options.feedrate}")
         gcode.append("G92 X0 Y0")
         gcode.append(f"M03 S{self.options.temperature}")
@@ -101,20 +128,24 @@ class CostyCNC(inkex.EffectExtension):
 
         gcode_str = "\n".join(gcode)
 
-        # ====== SALVATAGGIO ======
+        # =========================================================
+        # 6) SALVATAGGIO FILE
+        # =========================================================
         outdir = os.path.expanduser("~/documents/costycnc/")
         os.makedirs(outdir, exist_ok=True)
 
-        fname = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".nc"
-        fpath = os.path.join(outdir, fname)
+        filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".nc"
+        filepath = os.path.join(outdir, filename)
 
-        with open(fpath, "w") as f:
+        with open(filepath, "w") as f:
             f.write(gcode_str)
 
-        self.msg(f"(Salvato: {fpath})")
+        self.msg(f"(Salvato: {filepath})")
         self.msg(gcode_str)
 
-        # ====== INVIO A GRBL ======
+        # =========================================================
+        # 7) INVIO A GRBL (opzionale)
+        # =========================================================
         try:
             ser = serial.Serial(self.options.port, 115200, timeout=1)
             ser.readline()
@@ -132,4 +163,3 @@ class CostyCNC(inkex.EffectExtension):
 
 if __name__ == '__main__':
     CostyCNC().run()
-
