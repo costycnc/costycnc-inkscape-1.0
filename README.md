@@ -2,7 +2,8 @@
 
 ### Installation video
 
-https://www.youtube.com/watch?v=h5VVwxQjCg4
+[![Guarda il video tutorial](https://img.youtube.com/vi/h5VVwxQjCg4/maxresdefault.jpg)](https://www.youtube.com/watch?v=h5VVwxQjCg4)
+
 
 ---
 
