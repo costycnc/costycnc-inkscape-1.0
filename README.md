@@ -1,5 +1,13 @@
 # costycnc-inkscape-1.0
 
+### Installation video
+
+The original project also includes an installation video:
+
+https://www.youtube.com/watch?v=h5VVwxQjCg4
+
+---
+
 **Inkscape extension created for CostyCNC**
 
 This project provides an Inkscape extension developed for **CostyCNC** to convert SVG paths into G-code and communicate directly with a CNC controller through a serial connection.
