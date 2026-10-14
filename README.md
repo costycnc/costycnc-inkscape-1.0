@@ -2,7 +2,7 @@
 
 ### Installation video
 
-The original project also includes an installation video:
+The installation video:
 
 https://www.youtube.com/watch?v=h5VVwxQjCg4
 
