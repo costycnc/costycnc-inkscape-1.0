@@ -2,8 +2,6 @@
 
 ### Installation video
 
-The installation video:
-
 https://www.youtube.com/watch?v=h5VVwxQjCg4
 
 ---
